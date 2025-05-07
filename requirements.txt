@@ -8,3 +8,4 @@ matplotlib
 gdown
 opencv-python-headless
 lxml
+requests
