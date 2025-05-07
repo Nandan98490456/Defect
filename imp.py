@@ -4,23 +4,21 @@ from PIL import Image
 import numpy as np
 from collections import defaultdict
 import gdown
-import requests
+import os
 
-# Google Drive file ID
-file_id = "1mT6KhX38bV5km_VP81SxRAhkscf4E4uy"
-url = f"https://drive.google.com/uc?export=download&id={file_id}"
+# Download model if not present
+MODEL_PATH = "best.pt"
+if not os.path.exists(MODEL_PATH):
+    file_id = "1mT6KhX38bV5km_VP81SxRAhkscf4E4uy"
+    gdown.download(f"https://drive.google.com/uc?id={file_id}", MODEL_PATH, quiet=False)
+    st.success("✅ Model downloaded successfully!")
 
-# Send GET request to download the file
-response = requests.get(url)
+# Cache model loading
+@st.cache_resource
+def load_model():
+    return YOLO(MODEL_PATH)
 
-# Check if the request was successful (status code 200)
-if response.status_code == 200:
-    with open("best.pt", "wb") as f:
-        f.write(response.content)
-    print("best.pt downloaded successfully!")
-else:
-    print(f"Failed to download the file. Status code: {response.status_code}")
-
+model = load_model()
 
 # Page config
 st.set_page_config(
@@ -29,7 +27,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Minimal styling to avoid scroll but keep default background
+# Custom styling
 st.markdown("""
     <style>
     .reportview-container .main {
@@ -48,7 +46,7 @@ st.markdown("""
     .stButton>button {
         background-color: #0a3d62;
         color: white;
-        border-radius: 10px;
+        border-radiu: 10px;
         padding: 10px;
     }
     .stFileUploader label {
@@ -61,12 +59,12 @@ st.markdown("""
 # Title
 st.title("National Institute of Technology, Warangal")
 st.subheader("🛠️ AI-Based Steel Surface Defect Detection System")
-st.markdown("Upload an image of a **hot rolled steel strip** to detect and classify surface defects using a **YOLOv8 deep learning model**.")
+st.markdown("Upload an image of a **hot rolled steel strip** to detect and classify surface defects using a **YOLO8 deep learning model**.")
 
 # File uploader
 uploaded_file = st.file_uploader("Upload Image", type=["jpg", "jpeg", "png", "bmp", "tiff", "webp"])
 
-# Defect Knowledge Base
+# Defect knowledge base
 defect_knowledge = {
     "Crazing": {
         "Cause": "Tensile stress beyond material limit due to cooling issues or high rolling speed.",
@@ -99,36 +97,38 @@ if uploaded_file is not None:
         image = Image.open(uploaded_file).convert("RGB")
         image_np = np.array(image)
 
-        # Run detection
-        results = model(image_np)
-        annotated_img = results[0].plot()
+        # Detection with progress
+        with st.spinner("Detecting defects..."):
+            results = model(image_np)
+            annotated_img = results[0].plot()
 
-        # Collect defect info
+        # Collect and group detected defects
         grouped_defects = defaultdict(list)
         for box in results[0].boxes.data.tolist():
             _, _, _, _, score, cls_id = box
             class_name = results[0].names[int(cls_id)]
             grouped_defects[class_name].append(score)
 
-        # Display side by side
+        # Layout: original and annotated image side by side
         col1, col2 = st.columns([1, 1.3])
-
         with col1:
+            st.image(image, caption="Uploaded Image", use_column_width=True)
+        with col2:
             st.image(annotated_img, caption="Detected Defects", use_column_width=True)
 
-        with col2:
-            st.subheader("📋 Detected Defects & Technical Details")
-            for defect, scores in grouped_defects.items():
-                class_key = defect.strip().replace(" ", "_").capitalize()
-                st.markdown(f"### 🔹 {defect}")
-                for idx, conf in enumerate(scores):
-                    st.markdown(f"- Confidence {idx+1}: **{conf:.2f}**")
+        # Display defect details
+        st.subheader("📋 Detected Defects & Technical Details")
+        for defect, scores in grouped_defects.items():
+            class_key = defect.strip().replace(" ", "_")
+            st.markdown(f"### 🔹 {defect}")
+            for idx, conf in enumerate(scores):
+                st.markdown(f"- Confidence {idx+1}: **{conf:.2f}**")
 
-                if class_key in defect_knowledge:
-                    st.markdown(f"**🛠 Cause:** {defect_knowledge[class_key]['Cause']}")
-                    st.markdown(f"**✅ Prevention:** {defect_knowledge[class_key]['Prevention']}")
-                else:
-                    st.warning("⚠️ No information found for this defect.")
+            if class_key in defect_knowledge:
+                st.markdown(f"**🛠 Cause:** {defect_knowledge[class_key]['Cause']}")
+                st.markdown(f"**✅ Prevention:** {defect_knowledge[class_key]['Prevention']}")
+            else:
+                st.warning("⚠️ No information found for this defect.")
 
     except Exception as e:
         st.error(f"Error processing image: {e}")
