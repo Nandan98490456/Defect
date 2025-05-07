@@ -5,37 +5,35 @@ import numpy as np
 from collections import defaultdict
 import requests
 
-# Google Drive file ID
-file_id = "1mT6KhX38bV5km_VP81SxRAhkscf4E4uy"
-url = f"https://drive.google.com/uc?export=download&id={file_id}"
-
-# Send GET request to download the file
-response = requests.get(url)
-
-# Check if the request was successful (status code 200)
-if response.status_code == 200:
-    with open("best.pt", "wb") as f:
-        f.write(response.content)
-    print("best.pt downloaded successfully!")
-else:
-    print(f"Failed to download the file. Status code: {response.status_code}")
-
-# Initialize YOLO model
-try:
-    model = YOLO("best.pt")  # Load the model
-    print("Model loaded successfully!")
-except Exception as e:
-    print(f"Error loading model: {e}")
-    st.error("Error loading the model. Please try again.")
-
-# Page config
+# ✅ Set page config first (must be first Streamlit command)
 st.set_page_config(
     page_title="NIT Warangal | Steel Surface Defect Detection",
     page_icon="🛠️",
     layout="wide"
 )
 
-# Minimal styling to avoid scroll but keep default background
+# ✅ Download best.pt from Google Drive if not present
+import os
+model_path = "best.pt"
+if not os.path.exists(model_path):
+    file_id = "1mT6KhX38bV5km_VP81SxRAhkscf4E4uy"
+    url = f"https://drive.google.com/uc?export=download&id={file_id}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        with open(model_path, "wb") as f:
+            f.write(response.content)
+        st.success("✅ YOLO model downloaded successfully.")
+    else:
+        st.error(f"❌ Failed to download model. Status code: {response.status_code}")
+
+# ✅ Load model
+try:
+    model = YOLO(model_path)
+except Exception as e:
+    st.error(f"❌ Error loading YOLO model: {e}")
+    st.stop()
+
+# Custom minimal styling
 st.markdown("""
     <style>
     .reportview-container .main {
@@ -64,15 +62,15 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Title
+# UI Header
 st.title("National Institute of Technology, Warangal")
 st.subheader("🛠️ AI-Based Steel Surface Defect Detection System")
 st.markdown("Upload an image of a **hot rolled steel strip** to detect and classify surface defects using a **YOLOv8 deep learning model**.")
 
-# File uploader
+# Upload
 uploaded_file = st.file_uploader("Upload Image", type=["jpg", "jpeg", "png", "bmp", "tiff", "webp"])
 
-# Defect Knowledge Base
+# Defect info
 defect_knowledge = {
     "Crazing": {
         "Cause": "Tensile stress beyond material limit due to cooling issues or high rolling speed.",
@@ -100,25 +98,25 @@ defect_knowledge = {
     }
 }
 
+# Detection logic
 if uploaded_file is not None:
     try:
         image = Image.open(uploaded_file).convert("RGB")
         image_np = np.array(image)
 
-        # Run detection
+        # Run YOLO inference
         results = model(image_np)
         annotated_img = results[0].plot()
 
-        # Collect defect info
+        # Group defects
         grouped_defects = defaultdict(list)
         for box in results[0].boxes.data.tolist():
             _, _, _, _, score, cls_id = box
             class_name = results[0].names[int(cls_id)]
             grouped_defects[class_name].append(score)
 
-        # Display side by side
+        # Layout
         col1, col2 = st.columns([1, 1.3])
-
         with col1:
             st.image(annotated_img, caption="Detected Defects", use_column_width=True)
 
