@@ -6,22 +6,27 @@ from collections import defaultdict
 import os
 import requests
 
-# GitHub repository raw URL for best.pt (replace with your actual GitHub URL)
-github_url = "https://github.com/Nandan98490456/Defect/raw/main/best.pt"
+# ✅ Correct raw GitHub URL
+github_url = "https://raw.githubusercontent.com/Nandan98490456/Defect/main/best.pt"
 
 # Function to download YOLO model from GitHub
 def download_model_from_github(url, output_path="best.pt"):
     if not os.path.exists(output_path):
-        print("Downloading YOLO model from GitHub...")
+        st.info("📦 Downloading YOLO model from GitHub...")
         response = requests.get(url)
         if response.status_code != 200:
-            raise ValueError("Failed to download model from GitHub.")
+            st.error("❌ Failed to download model from GitHub.")
+            st.stop()
+
         with open(output_path, "wb") as f:
             f.write(response.content)
 
         # Optional: Validate file size
         if os.path.getsize(output_path) < 1_000_000:
-            raise ValueError("Downloaded file is too small. Likely invalid.")
+            st.error("❌ Downloaded file is too small. Possibly an invalid or blocked GitHub URL.")
+            os.remove(output_path)
+            st.stop()
+
     return YOLO(output_path)
 
 # Download and load the YOLO model
@@ -34,17 +39,11 @@ st.set_page_config(
     layout="wide"
 )
 
-# Minimal styling to avoid scroll but keep default background
+# Minimal styling
 st.markdown("""
     <style>
-    .reportview-container .main {
-        overflow: hidden;
-    }
     .block-container {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-        padding-left: 2rem;
-        padding-right: 2rem;
+        padding: 1rem 2rem;
     }
     h1, h2 {
         color: #0a3d62;
@@ -63,15 +62,13 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Title and introduction
+# Page content
 st.title("National Institute of Technology, Warangal")
 st.subheader("🛠️ AI-Based Steel Surface Defect Detection System")
 st.markdown("Upload an image of a **hot rolled steel strip** to detect and classify surface defects using a **YOLOv8 deep learning model**.")
 
-# File uploader
 uploaded_file = st.file_uploader("Upload Image", type=["jpg", "jpeg", "png", "bmp", "tiff", "webp"])
 
-# Defect knowledge base
 defect_knowledge = {
     "Crazing": {
         "Cause": "Tensile stress beyond material limit due to cooling issues or high rolling speed.",
@@ -99,7 +96,7 @@ defect_knowledge = {
     }
 }
 
-# Processing uploaded image and defect detection
+# Image processing
 if uploaded_file is not None:
     try:
         image = Image.open(uploaded_file).convert("RGB")
@@ -109,16 +106,14 @@ if uploaded_file is not None:
         results = model(image_np)
         annotated_img = results[0].plot()
 
-        # Collect defect info
         grouped_defects = defaultdict(list)
         for box in results[0].boxes.data.tolist():
             _, _, _, _, score, cls_id = box
             class_name = results[0].names[int(cls_id)]
             grouped_defects[class_name].append(score)
 
-        # Display results
+        # Show results
         col1, col2 = st.columns([1, 1.3])
-
         with col1:
             st.image(annotated_img, caption="Detected Defects", use_column_width=True)
 
@@ -129,14 +124,12 @@ if uploaded_file is not None:
                 st.markdown(f"### 🔹 {defect}")
                 for idx, conf in enumerate(scores):
                     st.markdown(f"- Confidence {idx+1}: **{conf:.2f}**")
-
                 if class_key in defect_knowledge:
                     st.markdown(f"**🛠 Cause:** {defect_knowledge[class_key]['Cause']}")
                     st.markdown(f"**✅ Prevention:** {defect_knowledge[class_key]['Prevention']}")
                 else:
                     st.warning("⚠️ No information found for this defect.")
-
     except Exception as e:
-        st.error(f"Error processing image: {e}")
+        st.error(f"❌ Error processing image: {e}")
 else:
-    st.info("Please upload a valid image file (jpg, jpeg, png, bmp, tiff, webp).")
+    st.info("📤 Please upload an image file to begin detection.")
