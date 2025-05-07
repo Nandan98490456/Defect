@@ -13,11 +13,17 @@ url = f"https://drive.google.com/uc?export=download&id={file_id}"
 # Send GET request to download the file
 response = requests.get(url)
 
-# Check if the request was successful (status code 200)
+from ultralytics import YOLO
+
+# Download best.pt (your code here)
 if response.status_code == 200:
     with open("best.pt", "wb") as f:
         f.write(response.content)
     print("best.pt downloaded successfully!")
+
+    # ✅ Load the model after downloading
+    model = YOLO("best.pt")
+
 else:
     print(f"Failed to download the file. Status code: {response.status_code}")
 
