@@ -1,0 +1,10 @@
+streamlit
+ultralytics==8.1.25
+torch
+Pillow
+numpy
+pathlib
+matplotlib
+gdown
+opencv-python-headless
+lxml
