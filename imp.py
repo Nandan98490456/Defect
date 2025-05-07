@@ -3,20 +3,14 @@ from ultralytics import YOLO
 from PIL import Image
 import numpy as np
 from collections import defaultdict
-import gdown
-import requests
-
-# Google Drive file ID
-file_id = "1mT6KhX38bV5km_VP81SxRAhkscf4E4uy"
-url = f"https://drive.google.com/uc?export=download&id={file_id}"
-
-# Send GET request to download the file
-response = requests.get(url)
-
 import os
 import requests
-from ultralytics import YOLO
 
+# Google Drive file ID (if downloading the model directly from Google Drive)
+file_id = "1_JV4lyPuVRg8GxM6sLApLn4Zemac4krF"
+url = f"https://drive.google.com/uc?export=download&id={file_id}"
+
+# Function to download YOLO model from Google Drive
 def download_model_from_drive(url, output_path="best.pt"):
     if not os.path.exists(output_path):
         print("Downloading YOLO model...")
@@ -29,16 +23,12 @@ def download_model_from_drive(url, output_path="best.pt"):
         # Optional: Validate file size
         if os.path.getsize(output_path) < 1_000_000:
             raise ValueError("Downloaded file is too small. Likely invalid.")
-    
     return YOLO(output_path)
 
-model_url = "https://drive.google.com/uc?export=download&id=1_JV4lyPuVRg8GxM6sLApLn4Zemac4krF"
-model = download_model_from_drive(model_url)
+# Download and load model
+model = download_model_from_drive(url)
 
-
-
-
-# Page config
+# Streamlit page config
 st.set_page_config(
     page_title="NIT Warangal | Steel Surface Defect Detection",
     page_icon="🛠️",
@@ -74,7 +64,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Title
+# Title and introduction
 st.title("National Institute of Technology, Warangal")
 st.subheader("🛠️ AI-Based Steel Surface Defect Detection System")
 st.markdown("Upload an image of a **hot rolled steel strip** to detect and classify surface defects using a **YOLOv8 deep learning model**.")
@@ -82,7 +72,7 @@ st.markdown("Upload an image of a **hot rolled steel strip** to detect and class
 # File uploader
 uploaded_file = st.file_uploader("Upload Image", type=["jpg", "jpeg", "png", "bmp", "tiff", "webp"])
 
-# Defect Knowledge Base
+# Defect knowledge base
 defect_knowledge = {
     "Crazing": {
         "Cause": "Tensile stress beyond material limit due to cooling issues or high rolling speed.",
@@ -110,6 +100,7 @@ defect_knowledge = {
     }
 }
 
+# Processing uploaded image and defect detection
 if uploaded_file is not None:
     try:
         image = Image.open(uploaded_file).convert("RGB")
@@ -126,7 +117,7 @@ if uploaded_file is not None:
             class_name = results[0].names[int(cls_id)]
             grouped_defects[class_name].append(score)
 
-        # Display side by side
+        # Display results
         col1, col2 = st.columns([1, 1.3])
 
         with col1:
