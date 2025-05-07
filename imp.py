@@ -1,42 +1,40 @@
 import streamlit as st
+from ultralytics import YOLO
+from PIL import Image
+import numpy as np
+from collections import defaultdict
+import gdown
+import requests
 
-# MUST be the first Streamlit command
+# Google Drive file ID
+file_id = "1mT6KhX38bV5km_VP81SxRAhkscf4E4uy"
+url = f"https://drive.google.com/uc?export=download&id={file_id}"
+
+# Send GET request to download the file
+response = requests.get(url)
+
+# Check if the request was successful (status code 200)
+if response.status_code == 200:
+    with open("best.pt", "wb") as f:
+        f.write(response.content)
+    print("best.pt downloaded successfully!")
+else:
+    print(f"Failed to download the file. Status code: {response.status_code}")
+
+
+# Page config
 st.set_page_config(
     page_title="NIT Warangal | Steel Surface Defect Detection",
     page_icon="🛠️",
     layout="wide"
 )
 
-from ultralytics import YOLO
-from PIL import Image
-import numpy as np
-from collections import defaultdict
-import requests
-import os
-
-# Download the YOLO model if not present
-MODEL_PATH = "best.pt"
-if not os.path.exists(MODEL_PATH):
-    file_id = "1mT6KhX38bV5km_VP81SxRAhkscf4E4uy"
-    url = f"https://drive.google.com/uc?export=download&id={file_id}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        with open(MODEL_PATH, "wb") as f:
-            f.write(response.content)
-        print("✅ best.pt downloaded successfully.")
-    else:
-        st.error(f"❌ Failed to download model: HTTP {response.status_code}")
-
-# Load YOLO model
-try:
-    model = YOLO(MODEL_PATH)
-except Exception as e:
-    st.error(f"❌ Error loading YOLO model: {e}")
-    st.stop()
-
-# UI Styling
+# Minimal styling to avoid scroll but keep default background
 st.markdown("""
     <style>
+    .reportview-container .main {
+        overflow: hidden;
+    }
     .block-container {
         padding-top: 1rem;
         padding-bottom: 1rem;
@@ -58,9 +56,9 @@ st.markdown("""
         font-weight: bold;
     }
     </style>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-# Titles
+# Title
 st.title("National Institute of Technology, Warangal")
 st.subheader("🛠️ AI-Based Steel Surface Defect Detection System")
 st.markdown("Upload an image of a **hot rolled steel strip** to detect and classify surface defects using a **YOLOv8 deep learning model**.")
@@ -68,7 +66,7 @@ st.markdown("Upload an image of a **hot rolled steel strip** to detect and class
 # File uploader
 uploaded_file = st.file_uploader("Upload Image", type=["jpg", "jpeg", "png", "bmp", "tiff", "webp"])
 
-# Knowledge Base
+# Defect Knowledge Base
 defect_knowledge = {
     "Crazing": {
         "Cause": "Tensile stress beyond material limit due to cooling issues or high rolling speed.",
@@ -96,21 +94,23 @@ defect_knowledge = {
     }
 }
 
-# Run detection
 if uploaded_file is not None:
     try:
         image = Image.open(uploaded_file).convert("RGB")
         image_np = np.array(image)
+
+        # Run detection
         results = model(image_np)
         annotated_img = results[0].plot()
 
-        # Group by class
+        # Collect defect info
         grouped_defects = defaultdict(list)
         for box in results[0].boxes.data.tolist():
             _, _, _, _, score, cls_id = box
             class_name = results[0].names[int(cls_id)]
             grouped_defects[class_name].append(score)
 
+        # Display side by side
         col1, col2 = st.columns([1, 1.3])
 
         with col1:
@@ -123,12 +123,14 @@ if uploaded_file is not None:
                 st.markdown(f"### 🔹 {defect}")
                 for idx, conf in enumerate(scores):
                     st.markdown(f"- Confidence {idx+1}: **{conf:.2f}**")
+
                 if class_key in defect_knowledge:
                     st.markdown(f"**🛠 Cause:** {defect_knowledge[class_key]['Cause']}")
                     st.markdown(f"**✅ Prevention:** {defect_knowledge[class_key]['Prevention']}")
                 else:
                     st.warning("⚠️ No information found for this defect.")
+
     except Exception as e:
         st.error(f"Error processing image: {e}")
 else:
-    st.info("📂 Please upload an image to begin defect detection.")
+    st.info("Please upload a valid image file (jpg, jpeg, png, bmp, tiff, webp).")
