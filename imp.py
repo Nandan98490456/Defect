@@ -17,17 +17,24 @@ import os
 import requests
 from ultralytics import YOLO
 
-def download_model(url, output_path="best.pt"):
+def download_model_from_drive(url, output_path="best.pt"):
     if not os.path.exists(output_path):
-        print(f"Downloading model from {url}...")
+        print("Downloading YOLO model...")
         response = requests.get(url)
+        if response.status_code != 200:
+            raise ValueError("Failed to download model.")
         with open(output_path, "wb") as f:
             f.write(response.content)
+
+        # Optional: Validate file size
+        if os.path.getsize(output_path) < 1_000_000:
+            raise ValueError("Downloaded file is too small. Likely invalid.")
+    
     return YOLO(output_path)
 
-# Replace with your actual direct download URL
-model_url = "https://raw.githubusercontent.com/Nandan98490456/Defect/main/best.pt"
-model = download_model(model_url)
+model_url = "https://drive.google.com/uc?export=download&id=1_JV4lyPuVRg8GxM6sLApLn4Zemac4krF"
+model = download_model_from_drive(model_url)
+
 
 
 
