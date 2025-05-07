@@ -3,7 +3,6 @@ from ultralytics import YOLO
 from PIL import Image
 import numpy as np
 from collections import defaultdict
-import gdown
 import requests
 
 # Google Drive file ID
@@ -21,6 +20,13 @@ if response.status_code == 200:
 else:
     print(f"Failed to download the file. Status code: {response.status_code}")
 
+# Initialize YOLO model
+try:
+    model = YOLO("best.pt")  # Load the model
+    print("Model loaded successfully!")
+except Exception as e:
+    print(f"Error loading model: {e}")
+    st.error("Error loading the model. Please try again.")
 
 # Page config
 st.set_page_config(
