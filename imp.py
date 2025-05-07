@@ -6,17 +6,16 @@ from collections import defaultdict
 import os
 import requests
 
-# Google Drive file ID (if downloading the model directly from Google Drive)
-file_id = "1_JV4lyPuVRg8GxM6sLApLn4Zemac4krF"
-url = f"https://drive.google.com/uc?export=download&id={file_id}"
+# GitHub repository raw URL for best.pt (replace with your actual GitHub URL)
+github_url = "https://github.com/Nandan98490456/Defect/raw/main/best.pt"
 
-# Function to download YOLO model from Google Drive
-def download_model_from_drive(url, output_path="best.pt"):
+# Function to download YOLO model from GitHub
+def download_model_from_github(url, output_path="best.pt"):
     if not os.path.exists(output_path):
-        print("Downloading YOLO model...")
+        print("Downloading YOLO model from GitHub...")
         response = requests.get(url)
         if response.status_code != 200:
-            raise ValueError("Failed to download model.")
+            raise ValueError("Failed to download model from GitHub.")
         with open(output_path, "wb") as f:
             f.write(response.content)
 
@@ -25,8 +24,8 @@ def download_model_from_drive(url, output_path="best.pt"):
             raise ValueError("Downloaded file is too small. Likely invalid.")
     return YOLO(output_path)
 
-# Download and load model
-model = download_model_from_drive(url)
+# Download and load the YOLO model
+model = download_model_from_github(github_url)
 
 # Streamlit page config
 st.set_page_config(
