@@ -1,5 +1,5 @@
 import streamlit as st
-from ultralytics import YOLO
+from ultralytics import YOLO  # Ensure this is properly imported
 from PIL import Image
 import numpy as np
 from collections import defaultdict
@@ -16,7 +16,7 @@ if not os.path.exists(MODEL_PATH):
     st.success("✅ Model downloaded successfully!")
 
 # Allowlist DetectionModel for PyTorch serialization
-torch.serialization.add_safe_globals([ultralytics.nn.tasks.DetectionModel])
+torch.serialization.add_safe_globals([YOLO])  # Correct the allowlist to YOLO class
 
 # Cache model loading
 @st.cache_resource
