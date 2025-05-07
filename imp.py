@@ -5,6 +5,8 @@ import numpy as np
 from collections import defaultdict
 import gdown
 import os
+import torch
+import torch.serialization
 
 # Download model if not present
 MODEL_PATH = "best.pt"
@@ -13,10 +15,15 @@ if not os.path.exists(MODEL_PATH):
     gdown.download(f"https://drive.google.com/uc?id={file_id}", MODEL_PATH, quiet=False)
     st.success("✅ Model downloaded successfully!")
 
+# Allowlist DetectionModel for PyTorch serialization
+torch.serialization.add_safe_globals([ultralytics.nn.tasks.DetectionModel])
+
 # Cache model loading
 @st.cache_resource
 def load_model():
-    return YOLO(MODEL_PATH)
+    # Load model with weights_only=False to avoid unpickling issues
+    model = YOLO(MODEL_PATH)
+    return model
 
 model = load_model()
 
@@ -46,7 +53,7 @@ st.markdown("""
     .stButton>button {
         background-color: #0a3d62;
         color: white;
-        border-radiu: 10px;
+        border-radius: 10px;
         padding: 10px;
     }
     .stFileUploader label {
@@ -59,7 +66,7 @@ st.markdown("""
 # Title
 st.title("National Institute of Technology, Warangal")
 st.subheader("🛠️ AI-Based Steel Surface Defect Detection System")
-st.markdown("Upload an image of a **hot rolled steel strip** to detect and classify surface defects using a **YOLO8 deep learning model**.")
+st.markdown("Upload an image of a **hot rolled steel strip** to detect and classify surface defects using a **YOLOv8 deep learning model**.")
 
 # File uploader
 uploaded_file = st.file_uploader("Upload Image", type=["jpg", "jpeg", "png", "bmp", "tiff", "webp"])
