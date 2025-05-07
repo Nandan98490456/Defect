@@ -3,9 +3,14 @@ from ultralytics import YOLO
 from PIL import Image
 import numpy as np
 from collections import defaultdict
+import gdown
 
-# Load YOLOv8 model
-model = YOLO(r"C:\Users\sai\Desktop\best.pt")
+# Google Drive file ID from the shareable link
+file_id = "1mT6KhX38bV5km_VP81SxRAhkscf4E4uy"
+url = f"https://drive.google.com/uc?id={file_id}"
+
+# Download the file
+gdown.download(url, 'best.pt', quiet=False)
 
 # Page config
 st.set_page_config(
