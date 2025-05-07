@@ -13,19 +13,22 @@ url = f"https://drive.google.com/uc?export=download&id={file_id}"
 # Send GET request to download the file
 response = requests.get(url)
 
+import os
+import requests
 from ultralytics import YOLO
 
-# Download best.pt (your code here)
-if response.status_code == 200:
-    with open("best.pt", "wb") as f:
-        f.write(response.content)
-    print("best.pt downloaded successfully!")
+def download_model(url, output_path="best.pt"):
+    if not os.path.exists(output_path):
+        print(f"Downloading model from {url}...")
+        response = requests.get(url)
+        with open(output_path, "wb") as f:
+            f.write(response.content)
+    return YOLO(output_path)
 
-    # ✅ Load the model after downloading
-    model = YOLO("best.pt")
+# Replace with your actual direct download URL
+model_url = "https://raw.githubusercontent.com/Nandan98490456/Defect/main/best.pt"
+model = download_model(model_url)
 
-else:
-    print(f"Failed to download the file. Status code: {response.status_code}")
 
 
 # Page config
