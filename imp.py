@@ -4,13 +4,23 @@ from PIL import Image
 import numpy as np
 from collections import defaultdict
 import gdown
+import requests
 
-# Google Drive file ID from the shareable link
+# Google Drive file ID
 file_id = "1mT6KhX38bV5km_VP81SxRAhkscf4E4uy"
-url = f"https://drive.google.com/uc?id={file_id}"
+url = f"https://drive.google.com/uc?export=download&id={file_id}"
 
-# Download the file
-gdown.download(url, 'best.pt', quiet=False)
+# Send GET request to download the file
+response = requests.get(url)
+
+# Check if the request was successful (status code 200)
+if response.status_code == 200:
+    with open("best.pt", "wb") as f:
+        f.write(response.content)
+    print("best.pt downloaded successfully!")
+else:
+    print(f"Failed to download the file. Status code: {response.status_code}")
+
 
 # Page config
 st.set_page_config(
