@@ -1,44 +1,42 @@
 import streamlit as st
-from ultralytics import YOLO
-from PIL import Image
-import numpy as np
-from collections import defaultdict
-import requests
 
-# ✅ Set page config first (must be first Streamlit command)
+# MUST be the first Streamlit command
 st.set_page_config(
     page_title="NIT Warangal | Steel Surface Defect Detection",
     page_icon="🛠️",
     layout="wide"
 )
 
-# ✅ Download best.pt from Google Drive if not present
+from ultralytics import YOLO
+from PIL import Image
+import numpy as np
+from collections import defaultdict
+import requests
 import os
-model_path = "best.pt"
-if not os.path.exists(model_path):
+
+# Download the YOLO model if not present
+MODEL_PATH = "best.pt"
+if not os.path.exists(MODEL_PATH):
     file_id = "1mT6KhX38bV5km_VP81SxRAhkscf4E4uy"
     url = f"https://drive.google.com/uc?export=download&id={file_id}"
     response = requests.get(url)
     if response.status_code == 200:
-        with open(model_path, "wb") as f:
+        with open(MODEL_PATH, "wb") as f:
             f.write(response.content)
-        st.success("✅ YOLO model downloaded successfully.")
+        print("✅ best.pt downloaded successfully.")
     else:
-        st.error(f"❌ Failed to download model. Status code: {response.status_code}")
+        st.error(f"❌ Failed to download model: HTTP {response.status_code}")
 
-# ✅ Load model
+# Load YOLO model
 try:
-    model = YOLO(model_path)
+    model = YOLO(MODEL_PATH)
 except Exception as e:
     st.error(f"❌ Error loading YOLO model: {e}")
     st.stop()
 
-# Custom minimal styling
+# UI Styling
 st.markdown("""
     <style>
-    .reportview-container .main {
-        overflow: hidden;
-    }
     .block-container {
         padding-top: 1rem;
         padding-bottom: 1rem;
@@ -60,17 +58,17 @@ st.markdown("""
         font-weight: bold;
     }
     </style>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
-# UI Header
+# Titles
 st.title("National Institute of Technology, Warangal")
 st.subheader("🛠️ AI-Based Steel Surface Defect Detection System")
 st.markdown("Upload an image of a **hot rolled steel strip** to detect and classify surface defects using a **YOLOv8 deep learning model**.")
 
-# Upload
+# File uploader
 uploaded_file = st.file_uploader("Upload Image", type=["jpg", "jpeg", "png", "bmp", "tiff", "webp"])
 
-# Defect info
+# Knowledge Base
 defect_knowledge = {
     "Crazing": {
         "Cause": "Tensile stress beyond material limit due to cooling issues or high rolling speed.",
@@ -98,25 +96,23 @@ defect_knowledge = {
     }
 }
 
-# Detection logic
+# Run detection
 if uploaded_file is not None:
     try:
         image = Image.open(uploaded_file).convert("RGB")
         image_np = np.array(image)
-
-        # Run YOLO inference
         results = model(image_np)
         annotated_img = results[0].plot()
 
-        # Group defects
+        # Group by class
         grouped_defects = defaultdict(list)
         for box in results[0].boxes.data.tolist():
             _, _, _, _, score, cls_id = box
             class_name = results[0].names[int(cls_id)]
             grouped_defects[class_name].append(score)
 
-        # Layout
         col1, col2 = st.columns([1, 1.3])
+
         with col1:
             st.image(annotated_img, caption="Detected Defects", use_column_width=True)
 
@@ -127,14 +123,12 @@ if uploaded_file is not None:
                 st.markdown(f"### 🔹 {defect}")
                 for idx, conf in enumerate(scores):
                     st.markdown(f"- Confidence {idx+1}: **{conf:.2f}**")
-
                 if class_key in defect_knowledge:
                     st.markdown(f"**🛠 Cause:** {defect_knowledge[class_key]['Cause']}")
                     st.markdown(f"**✅ Prevention:** {defect_knowledge[class_key]['Prevention']}")
                 else:
                     st.warning("⚠️ No information found for this defect.")
-
     except Exception as e:
         st.error(f"Error processing image: {e}")
 else:
-    st.info("Please upload a valid image file (jpg, jpeg, png, bmp, tiff, webp).")
+    st.info("📂 Please upload an image to begin defect detection.")
